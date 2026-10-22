@@ -1,0 +1,39 @@
+# Python environments and bytecode
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Streamlit secrets and local configuration
+.streamlit/secrets.toml
+.env
+.env.*
+!.env.example
+
+# Temporary files, caches, and notebook checkpoints
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.streamlit/cache/
+*.tmp
+*.temp
+*.log
+*.bak
+.ipynb_checkpoints/
+# The local training notebook contains about 4 MB of saved cell output.
+ViT_Fire_Smoke_Detection_Colab.ipynb
+
+# Local model export (model.safetensors is larger than GitHub's 100 MB limit)
+best_model/
+*.safetensors
+*.pt
+*.pth
+*.bin
+
+# Local dataset (used only by the optional dataset gallery)
+dataset/
+
+# OS metadata
+.DS_Store
+Thumbs.db
