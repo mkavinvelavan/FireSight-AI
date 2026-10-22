@@ -34,6 +34,9 @@ best_model/
 # Local dataset (used only by the optional dataset gallery)
 dataset/
 
+# Compact, curated gallery examples are intentionally included in Git
+!gallery_samples/
+
 # OS metadata
 .DS_Store
 Thumbs.db

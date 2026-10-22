@@ -34,17 +34,20 @@ FireSight-AI/
 │   ├── test_prediction_examples.png
 │   ├── training_loss.png
 │   └── validation_macro_f1.png
+├── gallery_samples/
+│   ├── images/       # Selected real test-split examples
+│   └── labels/       # Matching original YOLO annotations
 ├── best_model/       # Local model export; ignored by Git
 └── dataset/          # Optional local gallery data; ignored by Git
 ```
 
-The visualizations in `assets/` are small project artifacts and are included. The model weights and dataset remain local because they are not appropriate to store in a standard GitHub repository.
+The visualizations in `assets/` and the compact `gallery_samples/` fallback are included. The full model weights and dataset remain local because they are not appropriate to store in a standard GitHub repository.
 
 The original Colab training notebook remains in the workspace. It contains about 4 MB of saved cell output and is excluded from Git because it is not needed to deploy this application.
 
 ## Dataset and attribution
 
-The dataset used in this project is the **Indoor Fire Smoke Dataset**, obtained from [https://zenodo.org/records/15826133](https://zenodo.org/records/15826133). Credit the dataset to **Arya Krisna Putra, “Indoor Fire Smoke Dataset,” Zenodo, record 15826133**, under the **CC BY 4.0** license specified in the dataset record. The record provides the downloadable `Indoor Fire Smoke.zip` archive (about 200.5 MB). The dataset is not committed to this GitHub project; `.gitignore` excludes the local `dataset/` directory.
+The dataset used in this project is the **Indoor Fire Smoke Dataset**, obtained from [https://zenodo.org/records/15826133](https://zenodo.org/records/15826133). Credit the dataset to Arya Krisna Putra, "Indoor Fire Smoke Dataset," Zenodo, record 15826133, under the **CC BY 4.0** license specified in the dataset record. The record provides the downloadable `Indoor Fire Smoke.zip` archive (about 200.5 MB). The full dataset is not committed to this GitHub project; `.gitignore` excludes the local `dataset/` directory. A compact gallery of 12 real images selected from the test split, together with their original YOLO label files, is included under `gallery_samples/` for cloud display.
 
 To use the local gallery, download the archive from the Zenodo record, extract it, and place the split folders in `dataset/` in this form:
 
@@ -56,7 +59,7 @@ dataset/
 └── data.yaml
 ```
 
-The class mapping is preserved: class `0` = Fire and class `1` = Smoke. The project uses the train, validation, and test splits and converts YOLO annotations into image-level labels; an image can contain Fire, Smoke, or both. Set `DATASET_DIR` if the extracted dataset is stored somewhere other than `dataset/`; relative paths are resolved from the project directory. The dataset is optional at runtime: if it is absent, the app displays a message that the local gallery is unavailable, while the other sections remain usable.
+The class mapping is preserved: class `0` = Fire and class `1` = Smoke. The project uses the train, validation, and test splits and converts YOLO annotations into image-level labels; an image can contain Fire, Smoke, or both. Set `DATASET_DIR` if the extracted dataset is stored somewhere other than `dataset/`; relative paths are resolved from the project directory. When the full dataset is available, the gallery continues to use it and its split/filter controls. When it is absent, the app displays the bundled `gallery_samples/` images and reads their paired original annotation files. If both are absent, the app explains how to restore them while the other sections remain usable.
 
 ## Evaluation results recorded in the notebook
 

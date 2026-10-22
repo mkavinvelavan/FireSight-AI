@@ -563,7 +563,7 @@ elif page == "Dataset & Augmentation":
     hero(
         "DATA TRANSPARENCY",
         "Dataset & Augmentation",
-        "Browse actual images from your Indoor Fire Smoke dataset and compare the training augmentation preview.",
+        "Browse actual dataset images or the bundled sample gallery, and compare the training augmentation preview.",
     )
     d = VERIFIED_RESULTS["dataset"]
     cols = st.columns(4)
@@ -584,67 +584,80 @@ elif page == "Dataset & Augmentation":
         st.markdown('<div class="fs-card"><h3>Class 1 · Smoke</h3><p>Images with at least one Smoke annotation. An image may contain both classes.</p></div>', unsafe_allow_html=True)
 
     st.subheader("Explore actual dataset images")
-    st.caption("Images are loaded from your local dataset folders and labels are read from the matching YOLO TXT files. No stock images are used in this gallery.")
+    st.caption("Images are loaded from the full local dataset when available, or from the bundled real-image samples for cloud deployment. Labels are read from their matching original YOLO TXT files; no stock images are used.")
     dataset_root = find_dataset_root()
-    if dataset_root is None:
-        st.warning(
-            "Dataset folder not found. Place the extracted dataset beside app.py in a folder named "
-            "'dataset' (or set the DATASET_DIR environment variable). Expected structure: "
-            "dataset/train/images, dataset/train/labels, dataset/valid/images, dataset/valid/labels, "
-            "dataset/test/images, and dataset/test/labels."
-        )
-        st.code("FireSight_AI/\n  app.py\n  best_model/\n  assets/\n  dataset/\n    train/images/\n    train/labels/\n    valid/images/\n    valid/labels/\n    test/images/\n    test/labels/", language="text")
+    using_sample_gallery = dataset_root is None
+    if using_sample_gallery:
+        image_dir = project_path("gallery_samples/images")
+        label_dir = project_path("gallery_samples/labels")
+        if image_dir.is_dir():
+            st.markdown(
+                "Showing selected real images from the [Indoor Fire Smoke Dataset on Zenodo]"
+                "(https://zenodo.org/records/15826133). Captions use the paired source annotation files."
+            )
+        else:
+            st.warning(
+                "The full dataset and bundled gallery samples are unavailable. Download the dataset from "
+                "https://zenodo.org/records/15826133 and place its train/valid/test image and label folders "
+                "under dataset/, or restore gallery_samples/ for the compact cloud gallery."
+            )
     else:
         split_choice = st.selectbox("Dataset split", ["train", "valid", "test"], index=0)
         split_dir = dataset_root / split_choice
         image_dir = split_dir / "images"
         label_dir = split_dir / "labels"
-        if not image_dir.is_dir():
-            st.warning(f"Image folder not found: {image_dir}")
-        else:
-            image_paths = sorted(p for p in image_dir.iterdir() if p.is_file() and p.suffix.lower() in IMAGE_EXTENSIONS)
-            filter_choice = st.selectbox("Filter by annotation", ["All annotated images", "Fire", "Smoke", "Fire + Smoke", "Missing label file"], index=0)
-            gallery_items = []
-            for image_path in image_paths:
-                label_path = label_dir / f"{image_path.stem}.txt"
-                labels = read_image_labels(label_path)
-                if filter_choice == "Missing label file":
-                    include = not label_path.exists()
-                elif filter_choice == "Fire":
-                    include = labels is not None and "Fire" in labels
-                elif filter_choice == "Smoke":
-                    include = labels is not None and "Smoke" in labels
-                elif filter_choice == "Fire + Smoke":
-                    include = labels is not None and "Fire" in labels and "Smoke" in labels
-                else:
-                    include = labels is not None
-                if include:
-                    gallery_items.append((image_path, labels, label_path.exists()))
 
-            st.caption(f"Dataset root: {dataset_root} · Showing {len(gallery_items):,} matching image(s).")
-            if not gallery_items:
-                st.info("No images match this filter. Check the split's labels folder and annotation files.")
+    if image_dir.is_dir():
+        if not label_dir.is_dir():
+            st.warning(f"Label folder not found: {label_dir}")
+        image_paths = sorted(p for p in image_dir.iterdir() if p.is_file() and p.suffix.lower() in IMAGE_EXTENSIONS)
+        filter_choice = st.selectbox("Filter by annotation", ["All annotated images", "Fire", "Smoke", "Fire + Smoke", "Missing label file"], index=0)
+        gallery_items = []
+        for image_path in image_paths:
+            label_path = label_dir / f"{image_path.stem}.txt"
+            labels = read_image_labels(label_path)
+            if filter_choice == "Missing label file":
+                include = not label_path.exists()
+            elif filter_choice == "Fire":
+                include = labels is not None and "Fire" in labels
+            elif filter_choice == "Smoke":
+                include = labels is not None and "Smoke" in labels
+            elif filter_choice == "Fire + Smoke":
+                include = labels is not None and "Fire" in labels and "Smoke" in labels
             else:
-                display_count = st.slider("Images to display", min_value=4, max_value=min(24, max(4, len(gallery_items))), value=min(12, max(4, len(gallery_items))), step=4)
-                gallery_items = gallery_items[:display_count]
-                for offset in range(0, len(gallery_items), 4):
-                    row = st.columns(4)
-                    for column, item in zip(row, gallery_items[offset:offset + 4]):
-                        image_path, labels, has_label_file = item
-                        with column:
-                            try:
-                                with Image.open(image_path) as im:
-                                    st.image(im.convert("RGB"), use_container_width=True)
-                            except Exception:
-                                st.error(f"Could not open {image_path.name}")
-                                continue
-                            st.caption(image_path.name)
-                            if labels is None:
-                                st.warning("Label unreadable or missing")
-                            elif labels:
-                                st.markdown(" · ".join(f"`{label}`" for label in labels))
-                            else:
-                                st.caption("No class IDs in label file")
+                include = labels is not None
+            if include:
+                gallery_items.append((image_path, labels, label_path.exists()))
+
+        if using_sample_gallery:
+            st.caption(f"Bundled gallery · Showing {len(gallery_items):,} matching sample image(s).")
+        else:
+            st.caption(f"Dataset root: {dataset_root} · Showing {len(gallery_items):,} matching image(s).")
+        if not gallery_items:
+            st.info("No images match this filter. Check the split's labels folder and annotation files.")
+        else:
+            display_count = st.slider("Images to display", min_value=4, max_value=min(24, max(4, len(gallery_items))), value=min(12, max(4, len(gallery_items))), step=4)
+            gallery_items = gallery_items[:display_count]
+            for offset in range(0, len(gallery_items), 4):
+                row = st.columns(4)
+                for column, item in zip(row, gallery_items[offset:offset + 4]):
+                    image_path, labels, has_label_file = item
+                    with column:
+                        try:
+                            with Image.open(image_path) as im:
+                                st.image(im.convert("RGB"), use_container_width=True)
+                        except Exception:
+                            st.error(f"Could not open {image_path.name}")
+                            continue
+                        st.caption(image_path.name)
+                        if labels is None:
+                            st.warning("Label unreadable or missing")
+                        elif labels:
+                            st.markdown(" · ".join(f"`{label}`" for label in labels))
+                        else:
+                            st.caption("No class IDs in label file")
+    elif not using_sample_gallery:
+        st.warning(f"Image folder not found: {image_dir}")
 
     st.subheader("Preprocessing and augmentation")
     st.markdown(
