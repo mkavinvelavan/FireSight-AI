@@ -1,4 +1,6 @@
+import base64
 import csv
+import html
 import io
 import json
 import os
@@ -65,44 +67,92 @@ VERIFIED_RESULTS = {
 st.markdown(
     """
     <style>
-    .stApp {
-      background: radial-gradient(ellipse at 90% 0%, rgba(127,29,29,.18), transparent 34%), #0a1020;
-      color: #e6edf7;
-    }
-    [data-testid="stHeader"] {background: rgba(10,16,32,.9);}
-    [data-testid="stSidebar"] {background:#0e1728;border-right:1px solid #26354c;}
-    [data-testid="stSidebar"] * {color:#e6edf7;}
-    .block-container {max-width:1400px;padding-top:1.3rem;padding-bottom:2.5rem;}
-    .fs-hero {
-      padding:2rem 2.2rem;border-radius:20px;
-      background:linear-gradient(120deg,#172554 0%,#451a24 62%,#7c2d12 100%);
-      border:1px solid rgba(255,255,255,.10);margin-bottom:1.1rem;
-      box-shadow:0 18px 45px rgba(0,0,0,.22);
-    }
-    .fs-eyebrow {color:#fecaca;font-size:.75rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;}
-    .fs-hero h1 {color:#fff;font-size:clamp(2rem,4vw,3rem);line-height:1.12;margin:.5rem 0;}
-    .fs-hero p {color:#f1f5f9;font-size:1.05rem;max-width:900px;margin-bottom:.2rem;}
-    .fs-muted {color:#9aabc2;font-size:.88rem;}
-    .fs-card {background:linear-gradient(145deg,#142034,#0f192a);border:1px solid #26354c;border-radius:15px;padding:1rem 1.1rem;height:100%;}
-    .fs-kpi-label {color:#9aabc2;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;}
-    .fs-kpi-value {color:#f8fafc;font-size:1.55rem;font-weight:780;margin:.25rem 0;}
-    .fs-kpi-note {color:#9aabc2;font-size:.78rem;}
-    .fs-pill {display:inline-block;padding:.28rem .65rem;border-radius:99px;border:1px solid #384860;background:#17243a;color:#e2e8f0;font-size:.78rem;margin:.15rem .2rem .15rem 0;}
-    .fs-callout {border-left:4px solid #ff625a;padding:.85rem 1rem;background:rgba(127,29,29,.18);border-radius:0 10px 10px 0;}
-    div[data-testid="stMetric"] {background:#111b2e;border:1px solid #26354c;padding:.8rem 1rem;border-radius:13px;}
-    div[data-testid="stMetricLabel"] {color:#9aabc2;}
-    div[data-testid="stMetricValue"] {color:#f8fafc;}
-    .stButton button[kind="primary"] {background:linear-gradient(90deg,#dc2626,#f97316);border:0;color:white;font-weight:700;border-radius:10px;}
+    :root {color-scheme:dark;--fs-bg:#080d16;--fs-border:#27384a;--fs-text:#edf2f7;--fs-muted:#a3b1c2;--fs-ember:#ff784f;--fs-teal:#58c5bf;}
+    .stApp {background:radial-gradient(ellipse at 88% -8%,rgba(176,65,42,.13),transparent 38%),radial-gradient(ellipse at 4% 42%,rgba(33,105,113,.08),transparent 34%),var(--fs-bg);color:var(--fs-text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}
+    [data-testid="stHeader"] {background:rgba(8,13,22,.86);backdrop-filter:blur(12px);}
+    [data-testid="stSidebar"] {background:#0b1420;border-right:1px solid #1d2a39;}
+    [data-testid="stSidebar"] * {color:var(--fs-text);}
+    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,[data-testid="stSidebar"] [data-testid="stCaptionContainer"] {color:var(--fs-muted);}
+    .fs-brand {font-size:1.22rem;font-weight:780;letter-spacing:-.035em;color:#f5f7fa;}
+    .fs-brand span {color:var(--fs-ember);}
+    .block-container {max-width:1380px;padding-top:1.45rem;padding-bottom:3rem;}
+    h1,h2,h3 {letter-spacing:-.025em;} h2 {margin-top:1.7rem!important;}
+    [data-testid="stCaptionContainer"] {color:var(--fs-muted);}
+    .fs-hero {position:relative;isolation:isolate;overflow:hidden;padding:1.8rem 2rem;border-radius:20px;background:linear-gradient(112deg,rgba(17,29,44,.78) 0%,rgba(23,32,46,.66) 52%,rgba(40,27,32,.62) 100%);border:1px solid rgba(159,181,204,.17);margin-bottom:1.2rem;box-shadow:0 18px 52px rgba(0,0,0,.25);backdrop-filter:blur(12px);}
+    .fs-hero-overview {display:flex;align-items:center;min-height:clamp(300px,32vw,420px);background-color:#0b1420;background-size:cover;background-position:64% center;background-repeat:no-repeat;border-color:rgba(255,166,124,.26);box-shadow:0 22px 58px rgba(0,0,0,.36),inset 0 0 0 1px rgba(255,255,255,.025);}
+    .fs-hero-overview .fs-hero-background {position:absolute;z-index:0;inset:0;width:100%;height:100%;object-fit:cover;object-position:64% center;pointer-events:none;}
+    .fs-hero-overview::before {z-index:1;inset:0;background:linear-gradient(90deg,rgba(5,11,20,.72) 0%,rgba(5,11,20,.60) 31%,rgba(5,11,20,.30) 56%,rgba(5,11,20,.10) 100%),linear-gradient(0deg,rgba(5,11,20,.28),rgba(5,11,20,.02) 72%),radial-gradient(ellipse at 86% 42%,rgba(255,103,58,.11),transparent 43%);opacity:1;animation:none;}
+    .fs-hero-overview .fs-hero-content {position:relative;z-index:2;width:100%;max-width:850px;text-shadow:0 2px 22px rgba(0,0,0,.55);}
+    .fs-hero::before {content:"";position:absolute;z-index:-1;inset:-35%;pointer-events:none;background:radial-gradient(ellipse at 79% 35%,rgba(255,111,68,.20),transparent 34%);opacity:.72;animation:fs-ember-glow 16s ease-in-out infinite alternate;}
+    .fs-hero-content {position:relative;animation:fs-enter .65s cubic-bezier(.2,.7,.2,1) both;}
+    .fs-hero-top {display:flex;align-items:center;justify-content:space-between;gap:1rem;}
+    .fs-eyebrow {color:#ffb39a;font-size:.72rem;font-weight:750;letter-spacing:.15em;text-transform:uppercase;}
+    .fs-hero h1 {color:#fff;font-size:clamp(2rem,4vw,3.05rem);line-height:1.08;margin:.62rem 0 .42rem;}
+    .fs-hero p {color:#d6e0ea;font-size:1rem;line-height:1.65;max-width:850px;margin-bottom:.1rem;}
+    .fs-status {display:inline-flex;align-items:center;gap:.55rem;color:#b9d0d3;font-size:.66rem;font-weight:750;letter-spacing:.105em;white-space:nowrap;}
+    .fs-status-dot {width:8px;height:8px;border-radius:50%;background:var(--fs-teal);box-shadow:0 0 12px rgba(88,197,191,.56);animation:fs-status-pulse 2.4s ease-in-out infinite;}
+    .fs-muted {color:var(--fs-muted);font-size:.88rem;}
+    .fs-card {background:linear-gradient(145deg,rgba(20,33,50,.82),rgba(13,23,35,.78));border:1px solid rgba(104,126,149,.36);border-radius:15px;padding:1rem 1.1rem;height:100%;backdrop-filter:blur(13px);transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;}
+    .fs-card:hover {transform:translateY(-2px);border-color:#526278;box-shadow:0 12px 28px rgba(0,0,0,.2);}
+    .fs-kpi-label {color:var(--fs-muted);font-size:.72rem;font-weight:650;letter-spacing:.09em;text-transform:uppercase;}
+    .fs-kpi-value {color:#f7fafc;font-size:1.55rem;font-weight:760;margin:.38rem 0;}
+    .fs-kpi-note {color:#a9b7c7;font-size:.76rem;line-height:1.5;}
+    .fs-pill {display:inline-block;padding:.28rem .65rem;border-radius:99px;border:1px solid #35475a;background:#142232;color:#d8e3ee;font-size:.76rem;margin:.15rem .2rem .15rem 0;}
+    .fs-callout {border-left:3px solid var(--fs-ember);padding:.9rem 1rem;background:linear-gradient(90deg,rgba(157,65,43,.22),rgba(17,27,40,.62));border:1px solid rgba(255,153,111,.13);border-left-width:3px;border-radius:0 10px 10px 0;color:#e8edf3;backdrop-filter:blur(10px);}
+    div[data-testid="stMetric"] {background:rgba(16,26,40,.78);border:1px solid var(--fs-border);padding:.8rem 1rem;border-radius:13px;backdrop-filter:blur(12px);transition:border-color .2s ease,transform .2s ease;}
+    div[data-testid="stMetric"]:hover {border-color:#536479;transform:translateY(-2px);}
+    div[data-testid="stMetricLabel"] {color:var(--fs-muted);} div[data-testid="stMetricValue"] {color:#f7fafc;}
+    [data-testid="stSidebar"] [role="radiogroup"] label {border-radius:9px;padding:.38rem .48rem;transition:background-color .18s ease,color .18s ease;}
+    [data-testid="stSidebar"] [role="radio"] {transition:transform .18s ease;} [data-testid="stSidebar"] [role="radio"]:hover {transform:translateX(2px);}
+    [data-testid="stSidebar"] [role="radio"][aria-checked="true"] {color:#ffc0a8;font-weight:700;}
+    div.stButton > button,div.stDownloadButton > button {border-radius:10px;border:1px solid #34475a;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,background-color .18s ease;}
+    div.stButton > button:hover,div.stDownloadButton > button:hover {transform:translateY(-1px);border-color:#ef8a67;box-shadow:0 6px 18px rgba(0,0,0,.18);}
+    div.stButton > button:focus-visible,div.stDownloadButton > button:focus-visible,[data-testid="stFileUploader"] button:focus-visible {outline:2px solid var(--fs-teal);outline-offset:3px;}
+    .stButton button[kind="primary"] {background:linear-gradient(100deg,#b93b32,#e76c42);border:1px solid rgba(255,179,154,.35);color:white;font-weight:700;}
+    [data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] {background:rgba(15,26,40,.72);border:1px dashed #58697b;border-radius:14px;transition:border-color .2s ease,background-color .2s ease,box-shadow .2s ease;}
+    [data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"]:hover {border-color:var(--fs-ember);background:rgba(34,31,37,.82);box-shadow:0 0 0 3px rgba(255,120,79,.08);}
+    [data-testid="stVerticalBlockBorderWrapper"] {border-color:#2a3a4d!important;background:rgba(14,23,35,.56);border-radius:15px;}
+    [data-baseweb="select"] > div {background:#111b29;border-color:#34475a;transition:border-color .18s ease,box-shadow .18s ease;}
+    [data-baseweb="select"] > div:focus-within {border-color:var(--fs-teal);box-shadow:0 0 0 2px rgba(88,197,191,.12);}
+    [data-testid="stImage"] img {border-radius:10px;} [data-testid="stDataFrame"] {border:1px solid #26384a;border-radius:12px;overflow:hidden;}
+    .fs-score {margin:.95rem 0 1.15rem;} .fs-score-head {display:flex;align-items:baseline;justify-content:space-between;margin-bottom:.48rem;color:#e8eef4;font-size:.9rem;font-weight:650;}
+    .fs-score-head strong {font-variant-numeric:tabular-nums;font-size:1rem;color:#fff;} .fs-score-track {height:9px;border-radius:20px;background:#263443;overflow:hidden;}
+    .fs-score-fill {display:block;width:var(--fs-score);height:100%;border-radius:inherit;transform:scaleX(0);transform-origin:left center;animation:fs-score-fill .72s cubic-bezier(.2,.75,.2,1) forwards;}
+    .fs-score-fill.fire {background:linear-gradient(90deg,#b93f35,#ff8a59);box-shadow:0 0 15px rgba(240,78,69,.3);} .fs-score-fill.smoke {background:linear-gradient(90deg,#258b92,#65d1c4);box-shadow:0 0 15px rgba(88,197,191,.25);} .fs-score-fill.neutral {background:linear-gradient(90deg,#75859a,#b0bdcb);}
+    .fs-result {padding:.85rem 1rem;border:1px solid #35475a;border-radius:12px;background:#111c2a;color:#f1f5f9;font-weight:650;animation:fs-enter .38s ease both;}
+    .fs-result.fire {border-color:rgba(240,78,69,.48);background:rgba(121,42,38,.2);} .fs-result.smoke {border-color:rgba(88,197,191,.45);background:rgba(25,94,98,.18);} .fs-result.both {border-color:rgba(239,138,103,.5);background:linear-gradient(100deg,rgba(121,42,38,.2),rgba(25,94,98,.16));} .fs-result.neither {border-color:#536174;background:rgba(73,87,104,.16);}
+    .fs-stage-card {animation:fs-enter .36s ease both;} .stProgress > div > div > div {background:linear-gradient(90deg,#d5563d,#f2915c);}
+    @keyframes fs-ember-glow {from {opacity:.48;transform:translate3d(-1%,0,0) scale(.98);}to {opacity:.82;transform:translate3d(1%,0,0) scale(1.02);}}
+    @keyframes fs-status-pulse {0%,100% {opacity:.65;transform:scale(.88);}50% {opacity:1;transform:scale(1);}}
+    @keyframes fs-enter {from {opacity:0;transform:translateY(7px);}to {opacity:1;transform:translateY(0);}}
+    @keyframes fs-score-fill {to {transform:scaleX(1);}}
+    @media (max-width:700px) {.block-container {padding-left:1rem;padding-right:1rem;padding-top:1rem;}.fs-hero {padding:1.3rem 1.15rem;border-radius:15px;}.fs-hero-top {align-items:flex-start;flex-direction:column;gap:.65rem;}.fs-hero p {font-size:.94rem;}.fs-card {padding:.9rem;}}
+    @media (prefers-reduced-motion:reduce) {*,*::before,*::after {scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;}}
     </style>
     """,
     unsafe_allow_html=True,
 )
 
 
-def hero(eyebrow, title, subtitle):
+def hero(eyebrow, title, subtitle, background_asset=None):
+    overview_background = ""
+    if background_asset:
+        background_path = asset(background_asset)
+        if background_path is not None:
+            background_uri = image_data_uri(
+                str(background_path), background_path.stat().st_mtime_ns
+            )
+            overview_background = (
+                f'<img class="fs-hero-background" src="{background_uri}" '
+                'alt="" aria-hidden="true">'
+            )
+    hero_class = "fs-hero fs-hero-overview" if background_asset else "fs-hero"
     st.markdown(
-        f'<div class="fs-hero"><div class="fs-eyebrow">{eyebrow}</div>'
-        f'<h1>{title}</h1><p>{subtitle}</p></div>',
+        f'<section class="{hero_class}">{overview_background}<div class="fs-hero-content"><div class="fs-hero-top">'
+        f'<div class="fs-eyebrow">{eyebrow}</div>'
+        '<div class="fs-status"><span class="fs-status-dot" aria-hidden="true"></span>'
+        '<span>IMAGE ANALYSIS SYSTEM</span></div></div>'
+        f'<h1>{title}</h1><p>{subtitle}</p></div></section>',
         unsafe_allow_html=True,
     )
 
@@ -110,6 +160,46 @@ def hero(eyebrow, title, subtitle):
 def asset(name):
     path = ASSET_DIR / name
     return path if path.exists() else None
+
+
+@st.cache_data(show_spinner=False)
+def image_data_uri(image_path, modified_ns):
+    """Create a cached data URI for a local image asset."""
+    image_bytes = Path(image_path).read_bytes()
+    return f"data:image/png;base64,{base64.b64encode(image_bytes).decode('ascii')}"
+
+
+dashboard_background_path = asset("firesight_dashboard_bg.png")
+if dashboard_background_path is not None:
+    dashboard_background_uri = image_data_uri(
+        str(dashboard_background_path), dashboard_background_path.stat().st_mtime_ns
+    )
+    st.markdown(
+        f"""
+        <style>
+        .stApp {{
+            background-color: #080d16 !important;
+            background-image:
+                linear-gradient(180deg, rgba(5, 11, 20, .68), rgba(5, 11, 20, .72)),
+                radial-gradient(ellipse at 84% 18%, rgba(225, 91, 52, .10), transparent 46%),
+                url("{dashboard_background_uri}") !important;
+            background-size: cover, cover, cover !important;
+            background-position: center, center, center 42% !important;
+            background-attachment: fixed, fixed, fixed !important;
+            background-repeat: no-repeat !important;
+        }}
+        [data-testid="stAppViewContainer"], [data-testid="stMain"],
+        [data-testid="stMainBlockContainer"] {{ background-color: transparent !important; }}
+        @media (max-width: 700px) {{
+            .stApp {{
+                background-attachment: scroll, scroll, scroll !important;
+                background-position: center, center, center 38% !important;
+            }}
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def find_dataset_root():
@@ -155,7 +245,7 @@ def read_image_labels(label_path):
     return names
 
 
-@st.cache_resource(show_spinner="Loading the fine-tuned Vision Transformer...")
+@st.cache_resource(show_spinner=False)
 def load_model():
     if MODEL_ID:
         model_source = MODEL_ID
@@ -206,11 +296,35 @@ def metric_card(label, value, note):
     )
 
 
+def score_bar(label, score):
+    """Render the exact model score with an animated, accessible visual bar."""
+    display_label = html.escape(str(label))
+    percent = float(score) * 100
+    bar_percent = min(max(percent, 0.0), 100.0)
+    label_key = str(label).casefold()
+    tone = "fire" if label_key == "fire" else "smoke" if label_key == "smoke" else "neutral"
+    st.markdown(
+        f'<div class="fs-score"><div class="fs-score-head"><span>{display_label}</span>'
+        f'<strong>{percent:.1f}%</strong></div>'
+        f'<div class="fs-score-track" role="progressbar" aria-label="{display_label} score" '
+        f'aria-valuemin="0" aria-valuemax="100" aria-valuenow="{bar_percent:.1f}" '
+        f'aria-valuetext="{percent:.1f} percent">'
+        f'<span class="fs-score-fill {tone}" style="--fs-score:{bar_percent:.3f}%"></span>'
+        '</div></div>',
+        unsafe_allow_html=True,
+    )
+
+
 # -------------------------------------------------------------------
 # Navigation
 # -------------------------------------------------------------------
-st.sidebar.markdown("# 🔥 FireSight AI")
-st.sidebar.caption("VISION TRANSFORMER · FIRE & SMOKE")
+def navigate_to_page(page_name):
+    """Select an existing sidebar destination before Streamlit reruns."""
+    st.session_state["firesight_nav"] = page_name
+
+
+st.sidebar.markdown('<div class="fs-brand">FireSight <span>AI</span></div>', unsafe_allow_html=True)
+st.sidebar.caption("VISION TRANSFORMER / FIRE & SMOKE")
 st.sidebar.markdown("---")
 page = st.sidebar.radio(
     "NAVIGATION",
@@ -243,6 +357,7 @@ if page == "Overview Dashboard":
         "AI-POWERED IMAGE CLASSIFICATION",
         "FireSight AI",
         "A fine-tuned Vision Transformer prototype for classifying visible fire and smoke indicators in uploaded images.",
+        background_asset="firesight_wildfire_bg.png",
     )
     st.markdown(
         '<div class="fs-callout"><b>Project objective</b><br>'
@@ -277,15 +392,24 @@ if page == "Overview Dashboard":
         )
     with right:
         st.subheader("Quick actions")
-        if st.button("🔥 Analyze an image", type="primary", use_container_width=True):
-            st.session_state["firesight_page"] = "Live Image Analysis"
-            st.rerun()
-        st.write("")
-        st.markdown(
-            '<div class="fs-card"><b>Explore the research</b><p class="fs-muted">'
-            'Review the model workflow, data augmentation, evaluation results, use cases, and limitations '
-            'using the sidebar.</p></div>',
-            unsafe_allow_html=True,
+        st.button(
+            "🔥 Analyze an image",
+            type="primary",
+            use_container_width=True,
+            on_click=navigate_to_page,
+            args=("Live Image Analysis",),
+        )
+        st.button(
+            "Explore project workflow",
+            use_container_width=True,
+            on_click=navigate_to_page,
+            args=("Project & Workflow",),
+        )
+        st.button(
+            "Review model performance",
+            use_container_width=True,
+            on_click=navigate_to_page,
+            args=("Model Performance",),
         )
     st.write("")
     st.warning(
@@ -316,16 +440,22 @@ elif page == "Live Image Analysis":
         else:
             input_col, result_col = st.columns([1, 1], gap="large")
             with input_col:
-                st.subheader("Input image")
-                st.image(image, use_container_width=True)
-                st.caption(f"File: {uploaded.name} · Dimensions: {image.width} × {image.height}")
-                analyse = st.button("Run image analysis", type="primary", use_container_width=True)
+                with st.container(border=True):
+                    st.subheader("Input image")
+                    st.image(image, use_container_width=True)
+                    st.caption(f"File: {uploaded.name} · Dimensions: {image.width} × {image.height}")
+                    analyse = st.button("Run image analysis", type="primary", use_container_width=True)
             with result_col:
                 st.subheader("Prediction results")
                 if analyse:
                     try:
-                        with st.spinner("Loading model and analysing image..."):
+                        with st.status("Analysis in progress", expanded=True) as analysis_status:
+                            analysis_status.write("1. Preparing image")
+                            analysis_status.write("2. Running Vision Transformer inference")
                             results, predicted, threshold, device = predict_image(image)
+                            analysis_status.write("3. Calculating Fire and Smoke scores")
+                            analysis_status.write("4. Preparing results")
+                            analysis_status.update(label="Analysis complete", state="complete", expanded=False)
                         st.session_state["firesight_last_result"] = {
                             "filename": uploaded.name,
                             "results": results,
@@ -336,15 +466,19 @@ elif page == "Live Image Analysis":
                         }
                         entry = st.session_state["firesight_last_result"]
                         if len(predicted) == 2:
-                            st.success("Model prediction: Fire + Smoke")
+                            outcome, outcome_class = "Fire + Smoke", "both"
                         elif len(predicted) == 1:
-                            st.success(f"Model prediction: {predicted[0]}")
+                            outcome, outcome_class = predicted[0], predicted[0].casefold()
                         else:
-                            st.warning("Neither label crossed the decision threshold")
+                            outcome, outcome_class = "Neither label crossed the threshold", "neither"
+                        st.markdown(
+                            f'<div class="fs-result {html.escape(outcome_class)}" role="status">'
+                            f'Model prediction: {html.escape(outcome)}</div>',
+                            unsafe_allow_html=True,
+                        )
                         st.caption(f"Threshold: {threshold:.2f} · Device: {device.type.upper()}")
                         for label, score in results.items():
-                            st.write(f"**{label}** · {score:.1%}")
-                            st.progress(min(max(score, 0.0), 1.0))
+                            score_bar(label, score)
                         st.info(
                             "These are model scores, not calibrated estimates of real-world risk. "
                             "A low score does not prove that an image or location is safe."
@@ -546,7 +680,7 @@ elif page == "Project & Workflow":
     )
     idx = next(i for i, s in enumerate(stages) if s[0] == selected_stage)
     st.markdown(
-        f'<div class="fs-card"><div class="fs-eyebrow">PIPELINE STAGE {idx+1} OF {len(stages)}</div>'
+        f'<div class="fs-card fs-stage-card"><div class="fs-eyebrow">PIPELINE STAGE {idx+1} OF {len(stages)}</div>'
         f'<h2>{stages[idx][0]}</h2><p>{stages[idx][1]}</p></div>',
         unsafe_allow_html=True,
     )
